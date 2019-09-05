@@ -1137,7 +1137,10 @@ class Benchmark {
     }
 
     RandomGenerator gen;
-    WriteBatch batch;
+    ///////////////////meggie
+    //WriteBatch batch;
+    MultiWriteBatch batch;
+    //////////////////meggie
     Status s;
     int64_t bytes = 0;
     for (int i = 0; i < num_; i += entries_per_batch_) {
@@ -1150,7 +1153,10 @@ class Benchmark {
         bytes += value_size_ + strlen(key);
         thread->stats.FinishedSingleOp();
       }
-      s = db_->Write(write_options_, &batch);
+      ///////////////////meggie
+      //s = db_->Write(write_options_, &batch);
+      s = db_->Write(write_options_, true, &batch);
+      ///////////////////meggie
       if (!s.ok()) {
         fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         exit(1);
@@ -1610,7 +1616,10 @@ class Benchmark {
       CustomedWorkloadWrite(thread, fname);
   }
   void CustomedWorkloadWrite(ThreadState* thread, std::string fname) {
-    WriteBatch batch;
+    /////////////meggie
+    //WriteBatch batch;
+    MultiWriteBatch batch;
+    /////////////////meggie
     Status s;
     int64_t bytes = 0;
     leveldb::WorkloadGenerator wlgnerator(fname);
@@ -1624,7 +1633,10 @@ class Benchmark {
         batch.Put(key, value);
         if(batch_num >= entries_per_batch_){
             num += entries_per_batch_;
-            s = db_->Write(write_options_, &batch);
+            ////////////////meggie
+            //s = db_->Write(write_options_, &batch);
+            s = db_->Write(write_options_, true, &batch);
+            //////////////meggie
             if (!s.ok()) {
                 fprintf(stderr, "put error: %s\n", s.ToString().c_str());
                 exit(1);

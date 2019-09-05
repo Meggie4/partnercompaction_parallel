@@ -2110,14 +2110,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     //   mutex_.Unlock();
     //   imm_micros += (env_->NowMicros() - imm_start);
     // }
-    if(NeedsCompaction()) {
-        const uint64_t imm_start = env_->NowMicros();
-        mutex_.Lock();
-        CompactMultiMemTable();
-        background_work_finished_signal_.SignalAll();
-        mutex_.Unlock();
-        imm_micros += (env_->NowMicros() - imm_start);
-    }
+    // if(NeedsCompaction()) {
+    //     const uint64_t imm_start = env_->NowMicros();
+    //     mutex_.Lock();
+    //     CompactMultiMemTable();
+    //     background_work_finished_signal_.SignalAll();
+    //     mutex_.Unlock();
+    //     imm_micros += (env_->NowMicros() - imm_start);
+    // }
     ////////////meggie
 
     Slice key = input->key();
@@ -2546,7 +2546,10 @@ Status DBImpl::Write(const WriteOptions& options, bool multi,
   //DEBUG_T("start deal with writer\n");
   //当前的writer对象处于队列头部
   // May temporarily unlock and wait.
+  DEBUG_T("to make room for write\n");
+  start_timer(MAKE_ROOM_FOR_WRITE);
   Status status = MakeRoomForWrite(my_batch == nullptr);//为新的键值对腾出空间
+  record_timer(MAKE_ROOM_FOR_WRITE);
   uint64_t last_sequence = versions_->LastSequence();//获取最后一个序列号
   Writer* last_writer = &w;//将当前的writer对象设置为last_writer，表示上一个处理的writer对象
   //DEBUG_T("to build batch group\n");
@@ -2847,10 +2850,12 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       // individual write by 1ms to reduce latency variance.  Also,
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
+      start_timer(SLEEP_FOR_MICROS);
       mutex_.Unlock();
       env_->SleepForMicroseconds(1000);
       allow_delay = false;  // Do not delay a single write more than once
       mutex_.Lock();
+      record_timer(SLEEP_FOR_MICROS);
     } else if (!force &&
                //(mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) 
                 //////////////meggie
@@ -2864,12 +2869,16 @@ Status DBImpl::MakeRoomForWrite(bool force) {
     //////////////meggie
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
+      start_timer(WAIT_MEMTABLE_FLUSH);
       Log(options_.info_log, "Current memtable full; waiting...\n");
       background_work_finished_signal_.Wait();
+      record_timer(WAIT_MEMTABLE_FLUSH);
     } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
       // There are too many level-0 files.
+      start_timer(WAIT_L0_FLUSH);
       Log(options_.info_log, "Too many L0 files; waiting...\n");
       background_work_finished_signal_.Wait();
+      record_timer(WAIT_L0_FLUSH);
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
