@@ -527,7 +527,7 @@ class PosixEnv : public Env {
     //否则，获取文件大小
     uint64_t file_size;
     Status status = GetFileSize(filename, &file_size);
-    DEBUG_T("NewRandomAccessFile, filename:%s, filesize:%llu\n", filename.c_str(), file_size);
+    //DEBUG_T("NewRandomAccessFile, filename:%s, filesize:%llu\n", filename.c_str(), file_size);
     if (status.ok()) {
       //将该文件进行内存映射
       void* mmap_base = ::mmap(/*addr=*/nullptr, file_size, PROT_READ,

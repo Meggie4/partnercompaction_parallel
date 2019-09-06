@@ -970,7 +970,9 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
   } else {
     assert(compact->outfile == nullptr);
   }
-  delete compact->outfile;
+
+  if(compact->outfile != nullptr)
+    delete compact->outfile;
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionState::Output& out = compact->outputs[i];
     pending_outputs_.erase(out.number);
@@ -1253,7 +1255,8 @@ void DBImpl::CleanupCompaction(PartnerCompactionState* compact) {
   } else {
     assert(compact->outfile == nullptr);
   }
-  delete compact->outfile;
+  if(compact->outfile != nullptr)
+    delete compact->outfile;
   //(TODO)如果真的出错了，怎么办，这样子全部丢弃partner肯定是不行的，需要再想想
   pending_outputs_.erase(compact->number);
   delete compact;
