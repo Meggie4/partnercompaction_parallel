@@ -697,6 +697,10 @@ class Benchmark {
         entries_per_batch_ = 1000;
         fresh_db = true;
         method = &Benchmark::Loaduniform100_5000k;
+      } else if(name == Slice("loaduniform100_10000k")) {
+        entries_per_batch_ = 1000;
+        fresh_db = true;
+        method = &Benchmark::Loaduniform100_10000k;
       } else if(name == Slice("loaduniform100_25000k")) {
         entries_per_batch_ = 1000;
         fresh_db = true;
@@ -714,6 +718,8 @@ class Benchmark {
         method = &Benchmark::Readuniform100_1000k;
       } else if(name == Slice("readuniform100_5000k")) {
         method = &Benchmark::Readuniform100_5000k;
+      } else if(name == Slice("readuniform100_10000k")) {
+        method = &Benchmark::Readuniform100_10000k;
       } else if(name == Slice("readuniform100_25000k")) {
         method = &Benchmark::Readuniform100_25000k;
       } else if(name == Slice("readuniform100_30000k")) {
@@ -1332,6 +1338,10 @@ class Benchmark {
       std::string fname = "/mnt/workloads/uniform/load_500M.txt"; 
       CustomedWorkloadWrite(thread, fname);
   }
+  void Loaduniform100_10000k(ThreadState* thread){
+      std::string fname = "/mnt/workloads/uniform/load_1G.txt"; 
+      CustomedWorkloadWrite(thread, fname);
+  }
   void Loaduniform100_25000k(ThreadState* thread){
       std::string fname = "/mnt/workloads/uniform/load_2.5G.txt"; 
       CustomedWorkloadWrite(thread, fname);
@@ -1356,6 +1366,10 @@ class Benchmark {
   }
   void Readuniform100_5000k(ThreadState* thread){
       std::string fname = "/mnt/workloads/uniform/read_500M.txt"; 
+      CustomedWorkloadRead(thread, fname);
+  }
+  void Readuniform100_10000k(ThreadState* thread){
+      std::string fname = "/mnt/workloads/uniform/read_1G.txt"; 
       CustomedWorkloadRead(thread, fname);
   }
   void Readuniform100_25000k(ThreadState* thread){

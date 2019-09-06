@@ -69,11 +69,12 @@ NUMTHREAD=1
 #BENCHMARKS="loadzipfian100_25000k,readzipfian100_25000k"
 #BENCHMARKS="loadzipfian100_30000k,readzipfian100_30000k"
 
-BENCHMARKS="loaduniform100_5000k"
+#BENCHMARKS="loaduniform100_5000k"
+#BENCHMARKS="loaduniform100_10000k"
 #BENCHMARKS="loaduniform100_15000k"
 #BENCHMARKS="loaduniform100_20000k"
 #BENCHMARKS="loaduniform100_25000k"
-#BENCHMARKS="loaduniform100_30000k"
+BENCHMARKS="loaduniform100_30000k"
 
 #BENCHMARKS="loadzipfian100_20000k"
 #BENCHMARKS="writezipfian100_5000k"
