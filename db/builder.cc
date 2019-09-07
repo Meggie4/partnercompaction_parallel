@@ -54,10 +54,16 @@ Status BuildTable(const std::string& dbname,
       uint64_t add_start = env->NowMicros();
       builder->Add(key, iter->value());
       uint64_t add_end = env->NowMicros();
-      DEBUG_T("level0 add need time:%d\n", add_end - add_start);
+      //DEBUG_T("level0 add need time:%d\n", add_end - add_start);
 	    ////////meggie
 	    // AddKeyToHyperLogLog(meta->hll, key);
 	    // meta->hll_add_count++;
+      InternalKey ikey;
+      ikey.DecodeFrom(key);
+      // if(ikey.user_key().ToString() == "user1566696312899609690") {
+      //   DEBUG_T("user1566696312899609690 has insert to file number:%llu\n", meta->number);
+      // }
+      DEBUG_T("build table, %s has insert to file number:%llu, iter:%p\n", ikey.user_key().ToString().c_str(), meta->number, iter);
       ////////meggie
     }
 	

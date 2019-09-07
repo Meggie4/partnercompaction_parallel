@@ -126,6 +126,7 @@ class MemTableInserter : public WriteBatch::Handler {
   MemTable* mem_;
 
   virtual void Put(const Slice& key, const Slice& value) {
+    DEBUG_T("memtable %p add, key:%s\n", mem_, key.ToString().c_str());  
     mem_->Add(sequence_, kTypeValue, key, value);
     sequence_++;
   }
@@ -134,7 +135,7 @@ class MemTableInserter : public WriteBatch::Handler {
     sequence_++;
   }
   ////////////////meggie
-  virtual void Put(SequenceNumber sequence, const Slice& key, const Slice& value) {  
+  virtual void Put(SequenceNumber sequence, const Slice& key, const Slice& value) {
     mem_->Add(sequence, kTypeValue, key, value);
   }
   virtual void Delete(SequenceNumber sequence, const Slice& key) {
@@ -226,6 +227,7 @@ void WriteBatchInternal::Append(WriteBatch* dst, const WriteBatch* src) {
 ///////////////////meggie
 void MultiWriteBatch::Put(const Slice& key, const Slice& value) {
    int index = GetKeyPrefixIndex(key);
+   //DEBUG_T("multi writebatch put, key:%s\n", key.ToString().c_str());  
    batches_[index].Put(key, value);
 }
 
@@ -281,9 +283,9 @@ Status WriteBatchInternal::InsertInto(const MultiWriteBatch* mbatch,
         
         thpool->AddJob(DealWithBatchIterator, &bs[i]);
     }
-    DEBUG_T("wait batch thpool finished.....\n");
+   // DEBUG_T("wait batch thpool finished.....\n");
     thpool->WaitAll();
-    DEBUG_T("batch thpool has finished!\n");
+    //DEBUG_T("batch thpool has finished!\n");
     
     for(int i = 0; i < sz; i++) {    
         delete bs[i].handler;

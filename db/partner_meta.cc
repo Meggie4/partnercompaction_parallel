@@ -231,7 +231,7 @@ namespace leveldb {
                     *block_offset = DecodeFixed64(key_ptr + key_length);
                     *block_size = DecodeFixed64(key_ptr + key_length + 8); 
                     //DEBUG_T("offset, is %d, size:%llu\n", *block_offset, *block_size);
-                    DEBUG_T("partner meta seek need time:%llu\n", env->NowMicros() - seek_start);
+                    //DEBUG_T("partner meta seek need time:%llu\n", env->NowMicros() - seek_start);
                     return true;
                 }
                 case kTypeDeletion:

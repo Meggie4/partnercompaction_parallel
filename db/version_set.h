@@ -322,6 +322,8 @@ class VersionSet {
   void TestIterator(Iterator* iter, bool range, InternalKey start, InternalKey end, bool containsend);
   //void TestIterator(Iterator* iter);
   Iterator* GetSingleCompactionIterator(Compaction* c);
+
+  void PrintLevel01();
   ////////////////meggie
 
   // Return the approximate offset in the database of the data for

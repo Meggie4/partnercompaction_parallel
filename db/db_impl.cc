@@ -244,10 +244,13 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,const std::
   mem_group_.resize(memtable_size_);
   imm_group_.resize(memtable_size_);
   has_imm_group_.resize(memtable_size_);
+  for(int i = 0; i < memtable_size_; i++) {
+    has_imm_group_[i].Release_Store(nullptr);
+  }
   mem_allocated_ = false;
   compact_thpool_ = new ThreadPool(memtable_size_, "compact_thpool");
   batch_thpool_ = new ThreadPool(memtable_size_, "batch_thpool");
-  remaining_mems_ = memtable_size_;
+  //remaining_mems_ = memtable_size_;
   ///////////meggie
 }
 
@@ -897,15 +900,16 @@ void DBImpl::BackgroundCompaction() {
     FileMetaData* f = c->input(0, 0);
     ////////////meggie
     c->edit()->DeleteFile(c->level(), f->number);
+    DEBUG_T("file%d trivial move to level+1\n", f->number);
     if(f->partners.size() != 0){
-        DEBUG_T("file%d trivial move to level+1\n", f->number);
         c->edit()->AddFile(c->level() + 1, f->number, f->file_size,
                        f->smallest, f->largest, f->origin_smallest, 
                        f->origin_largest, f->partners);
         DEBUG_T("after addfile\n");
-    } else 
+    } else {
         c->edit()->AddFile(c->level() + 1, f->number, f->file_size,
                        f->smallest, f->largest);
+    }
     ////////////meggie
     DEBUG_T("before logandapply\n");
     status = versions_->LogAndApply(c->edit(), &mutex_);
@@ -1210,8 +1214,10 @@ Status DBImpl::FinishPartnerTable(PartnerCompactionState* compact, Iterator* inp
   Status s = input->status();
   //TODO
   if (s.ok()) {
+    DEBUG_T("to call partner finish!\n");
     s = compact->partner_table->Finish();
   } else {
+    DEBUG_T("to call partner abandon\n");
     compact->partner_table->Abandon();
   }
 
@@ -1406,6 +1412,7 @@ void DBImpl::DealWithTraditionCompaction(CompactionState* compact,
     //(TODO)这两个迭代器要重新获取
     list[0] = t_sptcompaction->victim_iter;
     list[1] = t_sptcompaction->inputs1_iter;
+    //测试input[1]为文件5时的迭代器
     DEBUG_T("before get merge iter\n");
     Iterator* merge_iter = NewMergingIterator(&internal_comparator_,
             list, 2);
@@ -1466,7 +1473,10 @@ void DBImpl::DealWithTraditionCompaction(CompactionState* compact,
             compact->builder->Add(key, merge_iter->value());
             // AddKeyToHyperLogLog(compact->current_output()->hll, key);
             // compact->current_output()->hll_add_count++;
-
+            // if(ikey.user_key.ToString() == "user1566696312899609690") {
+            //   DEBUG_T("tradition compaction, user1566696312899609690 has insert to file number:%llu\n", compact->current_output()->number);
+            // }
+            DEBUG_T("tradition compaction,  %s has insert to file number:%llu\n", ikey.user_key.ToString().c_str(), compact->current_output()->number);
             if(compact->builder->FileSize() >= 
                     compact->compaction->MaxOutputFileSize()) {
                 //DEBUG_T("to finish generated a sstable\n");
@@ -1694,6 +1704,10 @@ void DBImpl::DealWithPartnerCompaction(PartnerCompactionState* compact,
             //        break;
             //    }
             //}
+            // if(ikey.user_key.ToString() == "user1566696312899609690") {
+            //   DEBUG_T("partner compaction,  user1566696312899609690 has insert to file number:%llu\n", compact->number);
+            // }
+            DEBUG_T("partner compaction,  %s has insert to file number:%llu\n", ikey.user_key.ToString().c_str(), compact->number);
         }
 
         input->Next();
@@ -1786,6 +1800,10 @@ Status DBImpl::DealWithSingleCompaction(CompactionState* compact) {
             compact->builder->Add(key, input->value());
             // AddKeyToHyperLogLog(compact->current_output()->hll, key);
             // compact->current_output()->hll_add_count++;
+            // if(ikey.user_key.ToString() == "user1566696312899609690") {
+            //   DEBUG_T("single compaction, user1566696312899609690 has insert to file number:%llu\n", compact->current_output()->number);
+            // }
+            DEBUG_T("single compaction,  %s has insert to file number:%llu\n", ikey.user_key.ToString().c_str(), compact->current_output()->number);
 
             if(compact->builder->FileSize() >= 
                     compact->compaction->MaxOutputFileSize()) {
@@ -2099,6 +2117,28 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
 
+  ///////////meggie
+  if(compact->compaction->level() == 0) {
+    DEBUG_T("before compaction:\n");
+    versions_->PrintLevel01();
+    DEBUG_T("compaction files:\n");
+    DEBUG_T("input0:\n");
+    for(int i = 0; i < compact->compaction->num_input_files(0); i++){
+      FileMetaData* fm = compact->compaction->input(0, i);
+      DEBUG_T("number:%llu, smallest:%s, largest:%s\n", fm->number, 
+            fm->smallest.user_key().ToString().c_str(),
+            fm->largest.user_key().ToString().c_str());
+    }
+    DEBUG_T("input1:\n");
+    for(int i = 0; i < compact->compaction->num_input_files(1); i++){
+      FileMetaData* fm = compact->compaction->input(1, i);
+      DEBUG_T("input1, number:%llu, smallest:%s, largest:%s\n", fm->number, 
+            fm->smallest.user_key().ToString().c_str(),
+            fm->largest.user_key().ToString().c_str());
+    }
+  }
+  //////////meggie
+
   for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {
     // Prioritize immutable compaction work
     ////////////////meggie
@@ -2193,6 +2233,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 	    ////////////meggie
       // AddKeyToHyperLogLog(compact->current_output()->hll, key);
       // compact->current_output()->hll_add_count++;
+      if(ikey.user_key.ToString() == "user1566696312899609690") {
+        DEBUG_T("compaction, user1566696312899609690 has insert to file number:%llu\n", compact->current_output()->number);
+      }
 	    ////////////meggie
 
       // Close output file if it is big enough
@@ -2240,6 +2283,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
+
+  ///////////meggie
+  if(compact->compaction->level() == 0) {
+    DEBUG_T("after compaction:\n");
+    versions_->PrintLevel01();
+  }
+  //////////meggie
   record_timer(DO_COMPACTION_WORK);
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log,
@@ -2532,7 +2582,7 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 /////////////////meggie
 Status DBImpl::Write(const WriteOptions& options, bool multi, 
                     MultiWriteBatch* my_batch) { 
-  DEBUG_T("in multi writer\n");
+  //DEBUG_T("in multi writer\n");
   Writer w(&mutex_);
   w.mbatch = my_batch;
   w.sync = options.sync;
@@ -2549,7 +2599,7 @@ Status DBImpl::Write(const WriteOptions& options, bool multi,
   //DEBUG_T("start deal with writer\n");
   //当前的writer对象处于队列头部
   // May temporarily unlock and wait.
-  DEBUG_T("to make room for write\n");
+  //DEBUG_T("to make room for write\n");
   start_timer(MAKE_ROOM_FOR_WRITE);
   Status status = MakeRoomForWrite(my_batch == nullptr);//为新的键值对腾出空间
   record_timer(MAKE_ROOM_FOR_WRITE);
@@ -2560,8 +2610,8 @@ Status DBImpl::Write(const WriteOptions& options, bool multi,
     MultiWriteBatch* updates = BuildMultiBatchGroup(&last_writer);
     //传入last_writer, 最后返回last_writer中writer对象，表示上一个处理的writer对象
     WriteBatchInternal::SetSequence(updates, last_sequence + 1);
-	uint64_t updates_num = WriteBatchInternal::Count(updates);
-	DEBUG_T("to insert into mulit memtable, kv num:%lld\n", updates_num);
+    uint64_t updates_num = WriteBatchInternal::Count(updates);
+    //DEBUG_T("to insert into mulit memtable, kv num:%lld\n", updates_num);
     last_sequence += updates_num;
 
     // Add to log and apply to memtable.  We can release the lock
@@ -2579,9 +2629,9 @@ Status DBImpl::Write(const WriteOptions& options, bool multi,
       //  }
       //}
       if (status.ok()) {
-		//DEBUG_T("to insert into mulit memtable, kv num:%lld\n", updates_num);
+		    //DEBUG_T("to insert into mulit memtable, kv num:%lld\n", updates_num);
         status = WriteBatchInternal::InsertInto(updates, mem_group_, batch_thpool_);
-		DEBUG_T("after inserted into mulit memtable\n");
+		    //DEBUG_T("after inserted into mulit memtable\n");
       }
       mutex_.Lock();
       //if (sync_error) {
@@ -2672,14 +2722,16 @@ bool DBImpl::NeedsFlush(std::vector<int>& flush_index) {
         return true;
 }
 
-inline bool DBImpl::NeedsWait(int flush_size) {
-    if(flush_size > remaining_mems_)
-        return true;
-    else 
-        return false;
+inline bool DBImpl::NeedsWait(std::vector<int>& flush_index) {
+   for(int i = 0; i < flush_index.size(); i++) {
+     if(has_imm_group_[flush_index[i]].NoBarrier_Load() != nullptr)
+      return true;
+   }
+   return false;
 }
 
 void DBImpl::CreateNewMemtable(std::vector<int>& flush_index) {
+    mutex_.AssertHeld();
     for(int i = 0; i < flush_index.size(); i++) {
         int index = flush_index[i];
         imm_group_[index] = mem_group_[index];
@@ -2687,8 +2739,16 @@ void DBImpl::CreateNewMemtable(std::vector<int>& flush_index) {
         mem_group_[index] = new MemTable(internal_comparator_);
         mem_group_[index]->isNVMMemtable = false;
         mem_group_[index]->Ref();
-        remaining_mems_--;
+        //remaining_mems_--;
+        DEBUG_T("create new memtable:%p, prefix:%d\n", mem_group_[index], index + 1);
     } 
+    DEBUG_T("after create new memtable, imm_groups:\n");
+    for(int j = 0; j < memtable_size_; j++) {
+      if(imm_group_[j] == nullptr)
+        DEBUG_T("imm_group[%d]:nullptr\n", j);
+      else
+        DEBUG_T("imm_group[%d]:%p\n", j, imm_group_[j]);
+    }
 }
 
 bool DBImpl::NeedsCompaction() {
@@ -2708,18 +2768,20 @@ struct compaction_struct {
 void DBImpl::ParallelCompactMemTableWrapper(void* args) {
     compaction_struct* cs = reinterpret_cast<compaction_struct*>(args);
     DBImpl* db = reinterpret_cast<DBImpl*>(cs->db);
+    DEBUG_T("ParallelCompactMemTableWrapper, mem:%p\n", cs->mem);
     db->ParallelCompactMemTable(cs->mem, &cs->meta);
 }
 
 void DBImpl::ParallelCompactMemTable(MemTable* mem, FileMetaData* meta) {
     start_timer(PARALLEL_COMPACTION_MEMTABLE);
     Iterator* iter = mem->NewIterator();
+    DEBUG_T("to build table:%p, iter:%p\n", mem, iter);
     Status s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
-    DEBUG_T("Level-0 table #%llu: %lld bytes, smallest:%s, largest:%s\n",
-      (unsigned long long) meta->number,
-      (unsigned long long) meta->file_size,
-      (unsigned long long) meta->smallest.user_key().ToString().c_str(),
-      (unsigned long long) meta->largest.user_key().ToString().c_str());
+    // DEBUG_T("Level-0 table #%llu: %lld bytes, smallest:%s, largest:%s\n",
+    //   (unsigned long long) meta->number,
+    //   (unsigned long long) meta->file_size,
+    //   (unsigned long long) meta->smallest.user_key().ToString().c_str(),
+    //   (unsigned long long) meta->largest.user_key().ToString().c_str());
     delete iter;
     record_timer(PARALLEL_COMPACTION_MEMTABLE);
 }
@@ -2751,11 +2813,13 @@ void DBImpl::CompactMultiMemTable() {
     }
     
     mutex_.Unlock();
-    for(int i = 0; i < memtable_size_; i++) {
-        if(cs[i] != nullptr)
-            compact_thpool_->AddJob(ParallelCompactMemTableWrapper, cs[i]);
-    }
     DEBUG_T("wait memtables compaction (numbers:%d) finished...\n", count);
+    for(int i = 0; i < memtable_size_; i++) {
+        if(cs[i] != nullptr){
+            DEBUG_T("i:%d, cs:%p, memtable:%p\n", i, cs[i], cs[i]->mem);
+            compact_thpool_->AddJob(ParallelCompactMemTableWrapper, cs[i]);
+        }
+    }
     compact_thpool_->WaitAll();
     DEBUG_T("memtables compaction has finished\n");
     mutex_.Lock();
@@ -2770,6 +2834,7 @@ void DBImpl::CompactMultiMemTable() {
             if (base != nullptr) {
               level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
             }
+            DEBUG_T("add file, level:%d, number:%llu\n", level, meta.number);
             edit.AddFile(level, meta.number, meta.file_size,
                           meta.smallest, meta.largest);
         } 
@@ -2786,13 +2851,18 @@ void DBImpl::CompactMultiMemTable() {
         s = versions_->LogAndApply(&edit, &mutex_);
     }
     
+    DEBUG_T("after log and apply, unref memtable, count:%d\n", count);
     if(s.ok()) {
         for(int i = 0; i < memtable_size_; i++) {
-            if(cs[i] != nullptr) {
+            if(cs[i] != nullptr) {  
+                //也就是说，这里的imm_group_[i]发生了变化，和cs[i]->mem不一致
+                //应该是在解锁的时候发生了改变，imm_group_[i]被赋予了新的值
                 imm_group_[i]->Unref();
+                DEBUG_T("to unref cs:%p, memtable:%p\n", cs[i], imm_group_[i]);
+                
                 imm_group_[i] = nullptr;
                 has_imm_group_[i].Release_Store(nullptr);
-                remaining_mems_++;
+                //remaining_mems_++;
                 delete cs[i];
             }
             DeleteObsoleteFiles();
@@ -2807,10 +2877,9 @@ void DBImpl::CompactMultiMemTable() {
 bool DBImpl::FindInMemTable(LookupKey& lkey, std::string* value, Status* s) {
    Slice user_key = lkey.user_key();
    int index = user_key.data()[4] - '0' - 1;
-   //DEBUG_T("user_key:%s, index:%d\n", 
-   //        user_key.ToString().c_str(), index);
    assert(mem_group_[index] != nullptr);
    MemTable* mem = mem_group_[index];
+   DEBUG_T("find in memtable %p, user_key:%s, index:%d\n", mem,  user_key.ToString().c_str(), index);
    if(mem->Get(lkey, value, s))
        return true;
    else {
@@ -2868,7 +2937,8 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       break;
    //////////////meggie
     //} else if (imm_ != nullptr) {
-    } else if (NeedsWait(flush_index.size())) {
+    //必须保证imm_group_相应的数据被下刷完毕了，才能将memtable转换为immutable memtable这样
+    } else if (NeedsWait(flush_index)) {
     //////////////meggie
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.

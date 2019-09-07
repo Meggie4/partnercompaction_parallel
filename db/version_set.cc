@@ -627,7 +627,7 @@ Status Version::Get(const ReadOptions& options,
                   const uint64_t partner_read_micros_start = vset_->env_->NowMicros();
                   bool find = f->partners[0].pm->Get(k, &block_offset, &block_size, &s);
                   const uint64_t partnermeta_read_micros_need = vset_->env_->NowMicros() - partner_read_micros_start;
-                  DEBUG_T("partner meta read need time:%llu\n", partnermeta_read_micros_need);
+                  //DEBUG_T("partner meta read need time:%llu\n", partnermeta_read_micros_need);
                   if(!find) {
                       not_found_searching_partner++;
                       goto search_sstable;
@@ -646,8 +646,8 @@ Status Version::Get(const ReadOptions& options,
                       return s;
                   }
                   const uint64_t partner_read_micros_need = vset_->env_->NowMicros() - partner_read_micros_start;
-                  DEBUG_T("partner read need time:%llu, partnerdata read need time:%llu\n", partner_read_micros_need, 
-                                                  partner_read_micros_need - partnermeta_read_micros_need);
+                  // DEBUG_T("partner read need time:%llu, partnerdata read need time:%llu\n", partner_read_micros_need, 
+                  //                                 partner_read_micros_need - partnermeta_read_micros_need);
                   switch (saver.state) {
                     case kNotFound:
                         DEBUG_T("NotFound in partner\n");
@@ -671,7 +671,7 @@ search_sstable:
       s = vset_->table_cache_->Get(options, f->number, f->file_size,
                                    ikey, &saver, SaveValue);
       const uint64_t sstable_read_micros_need = vset_->env_->NowMicros() - sstable_read_micros_start;
-      DEBUG_T("sstable read need time:%llu\n", sstable_read_micros_need);
+      //DEBUG_T("sstable read need time:%llu\n", sstable_read_micros_need);
       ///////////meggie
 
       if (!s.ok()) {
@@ -1495,6 +1495,22 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
 }
 
 ////////////////////meggie
+void VersionSet::PrintLevel01() {
+  DEBUG_T("level0 like this:\n");
+  for(int i = 0; i < current_->files_[0].size(); i++) {
+    FileMetaData* fm = current_->files_[0][i];
+    DEBUG_T("number:%llu, smallest:%s, largest:%s\n", fm->number, 
+            fm->smallest.user_key().ToString().c_str(),
+            fm->largest.user_key().ToString().c_str());
+  }
+  DEBUG_T("level1 like this:\n");
+  for(int i = 0; i < current_->files_[1].size(); i++) {
+    FileMetaData* fm = current_->files_[1][i];
+    DEBUG_T("number:%llu, smallest:%s, largest:%s\n", fm->number, 
+            fm->smallest.user_key().ToString().c_str(),
+            fm->largest.user_key().ToString().c_str());
+  }
+}
 ////针对的是victim inputs没有partner的情况, 获取traditional compaction 
 void VersionSet::AddInputDeletions(VersionEdit* edit, Compaction* c, std::vector<int> tcompaction_index) {
     const std::vector<FileMetaData*>& files0 = c->inputs_[0];
@@ -1594,8 +1610,10 @@ void VersionSet::MergeTSplitCompaction(Compaction* c,
         t_sptcompaction->inputs1_iter = NewIteratorWithPartner(
 											table_cache_, files1[inputs1_index]);
 
-        // DEBUG_T("test single inputs1_iter\n");
-        // TestIterator(t_sptcompaction->inputs1_iter, false, InternalKey(), InternalKey(), false);
+        if(c->inputs_[1][0]->number == 5){
+          DEBUG_T("test single inputs1_iter, number is nnn5\n");
+          TestIterator(t_sptcompaction->inputs1_iter, false, InternalKey(), InternalKey(), false);
+        }
         result.push_back(t_sptcompaction);
         return;
     }
@@ -2067,7 +2085,7 @@ void VersionSet::AddLiveFiles(std::set<uint64_t>* live) {
        v != &dummy_versions_;
        v = v->next_) {
     uint64_t sstable_size = 0, partner_size = 0;
-    DEBUG_T("start addlivefiles, version%d\n", index);
+    //DEBUG_T("start addlivefiles, version%d\n", index);
     for (int level = 0; level < config::kNumLevels; level++) {
       const std::vector<FileMetaData*>& files = v->files_[level];
       for (size_t i = 0; i < files.size(); i++) {
@@ -2084,8 +2102,8 @@ void VersionSet::AddLiveFiles(std::set<uint64_t>* live) {
         /////////meggie
       }
     }
-    DEBUG_T("in this version, SSTable size is %llu, partner_size is %llu\n", sstable_size, partner_size);
-    DEBUG_T("end addlivefiles, version%d\n", index++);
+    // DEBUG_T("in this version, SSTable size is %llu, partner_size is %llu\n", sstable_size, partner_size);
+    // DEBUG_T("end addlivefiles, version%d\n", index++);
   }
 }
 

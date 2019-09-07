@@ -41,7 +41,7 @@ namespace leveldb {
             // meta_available_var.notify_one();
             // num_in_block = 0;
 
-            DEBUG_T("flush block, offset:%llu, size:%llu\n", curr_blockoffset_, curr_blocksize_);
+            //DEBUG_T("flush block, offset:%llu, size:%llu\n", curr_blockoffset_, curr_blocksize_);
             queue_.push_back(key.ToString());
             insertMeta();
         } else {
@@ -60,7 +60,12 @@ namespace leveldb {
             return;
         for(int i = 0; i < queue_.size(); i++) {
             //一个个插入
-            //DEBUG_T("insertmeta, key is %s\n", queue_[i].c_str());
+            InternalKey ikey;
+            ikey.DecodeFrom(queue_[i]);
+            // if(ikey.user_key().ToString() == "user1566696312899609690") {
+            //   DEBUG_T("single partner table, user1566696312899609690 has insert to partner meta:%llu\n");
+            // }
+            //DEBUG_T("insertmeta, key is %s\n", ikey.user_key().ToString().c_str());
             meta_->Add(Slice(queue_[i]), curr_blockoffset_, curr_blocksize_);
         }
         queue_.clear();
@@ -69,7 +74,7 @@ namespace leveldb {
     Status SinglePartnerTable::Finish() {
         uint64_t block_size = 0;
         Status s = builder_->PartnerFinish(&block_size);
-        if(num_in_block == 0) {
+        if(block_size == 0) {
             return s;
         }
         curr_blocksize_ = block_size;

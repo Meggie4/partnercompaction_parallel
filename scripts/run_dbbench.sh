@@ -53,16 +53,17 @@ NUMTHREAD=1
 #BENCHMARKS="customedlatest1k_100k"
 #BENCHMARKS="customedlatest1k_1000k"
 
-#BENCHMARKS="loaduniform100_15000k,readuniform100_15000k"
 #BENCHMARKS="loaduniform100_1000k,readuniform100_1000k"
 #BENCHMARKS="loaduniform100_5000k,readuniform100_5000k"
+#BENCHMARKS="loaduniform100_10000k,readuniform100_10000k"
+#BENCHMARKS="loaduniform100_15000k,readuniform100_15000k"
 #BENCHMARKS="loaduniform100_20000k,readuniform100_20000k"
 #BENCHMARKS="loaduniform100_25000k,readuniform100_25000k"
 #BENCHMARKS="loaduniform100_30000k,readuniform100_30000k"
 
 #BENCHMARKS="loadzipfian100_500k,readzipfian100_500k"
 #BENCHMARKS="loadzipfian100_1000k,readzipfian100_1000k"
-#BENCHMARKS="loadzipfian100_5000k,readzipfian100_5000k"
+BENCHMARKS="loadzipfian100_5000k,readzipfian100_5000k"
 #BENCHMARKS="loadzipfian100_10000k,readzipfian100_10000k"
 #BENCHMARKS="loadzipfian100_15000k,readzipfian100_15000k"
 #BENCHMARKS="loadzipfian100_20000k,readzipfian100_20000k"
@@ -74,7 +75,7 @@ NUMTHREAD=1
 #BENCHMARKS="loaduniform100_15000k"
 #BENCHMARKS="loaduniform100_20000k"
 #BENCHMARKS="loaduniform100_25000k"
-BENCHMARKS="loaduniform100_30000k"
+#BENCHMARKS="loaduniform100_30000k"
 
 #BENCHMARKS="loadzipfian100_20000k"
 #BENCHMARKS="writezipfian100_5000k"
